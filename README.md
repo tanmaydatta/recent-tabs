@@ -2,6 +2,8 @@
 
 A Chrome extension that provides Cmd+Tab-like (Most Recently Used) tab switching with a visual popup overlay.
 
+<img width="1897" height="1011" alt="image" src="https://github.com/user-attachments/assets/f38d420d-feae-496c-8945-f001804f9164" />
+
 ## Features
 
 - **MRU Order**: Switch between tabs in the order you actually used them
