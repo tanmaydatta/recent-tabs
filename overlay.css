@@ -1,0 +1,147 @@
+/* Tab Switcher Overlay - Injected into page */
+#mru-tab-switcher-overlay {
+  all: initial;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 2147483647; /* Maximum z-index */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  animation: mru-fade-in 0.15s ease-out;
+}
+
+@keyframes mru-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+#mru-tab-switcher-card {
+  all: initial;
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 12px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+  max-width: 600px;
+  width: 90%;
+  max-height: 70vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: mru-slide-up 0.2s ease-out;
+}
+
+@keyframes mru-slide-up {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+#mru-tab-list {
+  all: initial;
+  padding: 12px;
+  overflow-y: auto;
+  max-height: 60vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+#mru-tab-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+#mru-tab-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#mru-tab-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+#mru-tab-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.mru-tab-item {
+  all: initial;
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  margin: 4px 0;
+  border-radius: 8px;
+  background: transparent;
+  transition: background 0.1s ease;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.mru-tab-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.mru-tab-item.mru-selected {
+  background: #4285f4;
+  color: white;
+}
+
+.mru-tab-item.mru-selected .mru-tab-url {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.mru-tab-favicon {
+  all: initial;
+  width: 24px;
+  height: 24px;
+  margin-right: 12px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.mru-tab-info {
+  all: initial;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.mru-tab-title {
+  all: initial;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: inherit;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.mru-tab-url {
+  all: initial;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.mru-tab-item.mru-selected .mru-tab-url {
+  color: rgba(255, 255, 255, 0.8);
+}
