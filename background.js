@@ -507,3 +507,28 @@ chrome.commands.onCommand.addListener((command) => {
 
 // Initialize on startup
 initialize();
+
+// Export functions for testing
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    getAllMRU,
+    getMRUForWindow,
+    setMRUForWindow,
+    setAllMRU,
+    initialize,
+    updateMRU,
+    moveTabToSecond,
+    removeFromMRU,
+    getCycleList,
+    ensureContentScriptInjected,
+    showOverlay,
+    hideOverlay,
+    renderOverlay,
+    commitSelection,
+    cancelCycling,
+    handleMRUCycle,
+    handleMRUCycleReverse,
+    cyclingState,
+    STORAGE_KEY
+  };
+}

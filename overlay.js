@@ -94,7 +94,7 @@
     const tabList = document.getElementById(LIST_ID);
     if (!tabList) {
       console.error('Tab list element not found!');
-      return;
+      showOverlay();
     }
 
     // Clear existing content

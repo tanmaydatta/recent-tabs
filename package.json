@@ -1,0 +1,17 @@
+{
+  "name": "mru-tab-switcher",
+  "version": "1.0.0",
+  "description": "MRU Tab Switcher Chrome Extension Tests",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:threshold": "jest --coverage --coverageThreshold='{\"global\":{\"lines\":75,\"functions\":75,\"branches\":75,\"statements\":75}}'"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "@types/jest": "^29.5.11",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  }
+}
