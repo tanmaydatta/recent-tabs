@@ -16,7 +16,7 @@ const STORAGE_KEY = 'mruByWindow';
 // Initialize: Load MRU state from storage
 async function initialize() {
   try {
-    const result = await chrome.storage.session.get(STORAGE_KEY);
+    const result = await chrome.storage.local.get(STORAGE_KEY);
     if (result[STORAGE_KEY]) {
       mruByWindow = new Map(Object.entries(result[STORAGE_KEY]));
     }
@@ -44,7 +44,7 @@ async function initialize() {
 async function saveMRU() {
   try {
     const data = Object.fromEntries(mruByWindow.entries());
-    await chrome.storage.session.set({ [STORAGE_KEY]: data });
+    await chrome.storage.local.set({ [STORAGE_KEY]: data });
   } catch (error) {
     console.error('Failed to save MRU state:', error);
   }
