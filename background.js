@@ -112,25 +112,17 @@ async function getCycleList(windowId) {
 
   // Ensure active tab is at the front
   if (mru[0] !== activeTab.id) {
-    mru = mru.filter(id => id !== activeTab.id);
-    mru.unshift(activeTab.id);
-    mruByWindow.set(windowId, mru);
-    saveMRU();
+    updateMRU(windowId, activeTab.id);    
   }
 
   // Build cycle order: INCLUDE active tab (different from previous version)
   const cycleIds = [...mru];
 
   // Add any tabs not in MRU yet
-  for (const tab of tabs) {
-    if (!cycleIds.includes(tab.id)) {
-      cycleIds.push(tab.id);
-    }
-  }
 
   // Build display objects
   const tabsById = new Map(tabs.map(t => [t.id, t]));
-  return cycleIds.map(id => {
+  return cycleIds.filter(id => tabsById.get(id)).map(id => {
     const tab = tabsById.get(id);
     return {
       id: tab.id,
@@ -353,11 +345,11 @@ async function handleMRUCycleReverse() {
 // Event listeners
 
 // Tab activated
-chrome.tabs.onActivated.addListener(({ tabId, windowId }) => {
+chrome.tabs.onActivated.addListener(async ({ tabId, windowId }) => {
+  const tab = await chrome.tabs.get(tabId);
+
   // Don't update MRU during cycling
-  if (!cyclingState.active) {
     updateMRU(windowId, tabId);
-  }
 });
 
 // Tab removed
@@ -395,6 +387,7 @@ chrome.tabs.onCreated.addListener(async (tab) => {
 
 // Window focus changed
 chrome.windows.onFocusChanged.addListener(async (windowId) => {
+  const tabs = await chrome.tabs.query({ windowId, active: true });
   if (windowId === chrome.windows.WINDOW_ID_NONE) {
     return;
   }
@@ -406,7 +399,7 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
 
   // Update MRU for focused window's active tab
   try {
-    const tabs = await chrome.tabs.query({ windowId, active: true });
+    
     if (tabs.length > 0) {
       updateMRU(windowId, tabs[0].id);
     }
