@@ -1,6 +1,3 @@
-// MRU tracking state
-let mruByWindow = new Map(); // Map<windowId, tabId[]>
-
 // Cycling state
 let cyclingState = {
   active: false,
@@ -13,83 +10,137 @@ let cyclingState = {
 // Storage keys
 const STORAGE_KEY = 'mruByWindow';
 
+// Helper: Get all MRU data from storage
+async function getAllMRU() {
+  try {
+    const result = await chrome.storage.local.get(STORAGE_KEY);
+    return result[STORAGE_KEY] || {};
+  } catch (error) {
+    console.error('Failed to get MRU data:', error);
+    return {};
+  }
+}
+
+// Helper: Get MRU array for a specific window
+async function getMRUForWindow(windowId) {
+  const allMRU = await getAllMRU();
+  return allMRU[String(windowId)] || [];
+}
+
+// Helper: Set MRU array for a specific window
+async function setMRUForWindow(windowId, mruArray) {
+  try {
+    const allMRU = await getAllMRU();
+    allMRU[String(windowId)] = mruArray;
+    await chrome.storage.local.set({ [STORAGE_KEY]: allMRU });
+  } catch (error) {
+    console.error('Failed to set MRU for window:', error);
+  }
+}
+
+// Helper: Set all MRU data (atomic replacement)
+async function setAllMRU(mruData) {
+  try {
+    await chrome.storage.local.set({ [STORAGE_KEY]: mruData });
+  } catch (error) {
+    console.error('Failed to set all MRU data:', error);
+  }
+}
+
 // Initialize: Load MRU state from storage
 async function initialize() {
   try {
-    const result = await chrome.storage.local.get(STORAGE_KEY);
-    if (result[STORAGE_KEY]) {
-      mruByWindow = new Map(Object.entries(result[STORAGE_KEY]));
-    }
-  } catch (error) {
-    console.error('Failed to load MRU state:', error);
-  }
+    const allMRU = await getAllMRU();
+    const windows = await chrome.windows.getAll({ populate: true });
+    let modified = false;
 
-  // Initialize MRU for all existing windows
-  const windows = await chrome.windows.getAll({ populate: true });
-  for (const window of windows) {
-    if (!mruByWindow.has(window.id)) {
-      mruByWindow.set(window.id, []);
-    }
-    // Add all tabs to MRU if not already present
-    for (const tab of window.tabs) {
-      if (tab.active) {
-        updateMRU(window.id, tab.id);
+    for (const window of windows) {
+      const windowKey = String(window.id);
+
+      if (!allMRU[windowKey]) {
+        allMRU[windowKey] = [];
+        modified = true;
+      }
+
+      for (const tab of window.tabs) {
+        if (tab.active) {
+          const mru = allMRU[windowKey];
+          if (!mru.includes(tab.id)) {
+            const filtered = mru.filter(id => id !== tab.id);
+            filtered.unshift(tab.id);
+            allMRU[windowKey] = filtered;
+            modified = true;
+          }
+        }
       }
     }
-  }
-  await saveMRU();
-}
 
-// Save MRU state to storage
-async function saveMRU() {
-  try {
-    const data = Object.fromEntries(mruByWindow.entries());
-    await chrome.storage.local.set({ [STORAGE_KEY]: data });
+    if (modified) {
+      await setAllMRU(allMRU);
+    }
   } catch (error) {
-    console.error('Failed to save MRU state:', error);
+    console.error('Failed to initialize MRU state:', error);
   }
 }
 
 // Update MRU: Move tab to front
-function updateMRU(windowId, tabId) {
-  let mru = mruByWindow.get(windowId) || [];
-  // Remove tab if it exists
-  mru = mru.filter(id => id !== tabId);
-  // Add to front
-  mru.unshift(tabId);
-  mruByWindow.set(windowId, mru);
-  saveMRU();
+async function updateMRU(windowId, tabId) {
+  try {
+    let mru = await getMRUForWindow(windowId);
+    // Remove tab if it exists
+    mru = mru.filter(id => id !== tabId);
+    // Add to front
+    mru.unshift(tabId);
+    await setMRUForWindow(windowId, mru);
+  } catch (error) {
+    console.error('Failed to update MRU:', error);
+  }
 }
 
 // Update MRU: Move tab to second to front
-function moveTabToSecond(windowId, tabId) {
-  let mru = mruByWindow.get(windowId) || [];
+async function moveTabToSecond(windowId, tabId) {
+  try {
+    let mru = await getMRUForWindow(windowId);
 
-  // Remove tab if it already exists
-  mru = mru.filter(id => id !== tabId);
+    // Remove tab if it already exists
+    mru = mru.filter(id => id !== tabId);
 
-  if (mru.length === 0) {
-    // If no other tabs, it becomes the first
-    mru.push(tabId);
-  } else {
-    // Insert at index 1 (second position)
-    mru.splice(1, 0, tabId);
+    if (mru.length === 0) {
+      // If no other tabs, it becomes the first
+      mru.push(tabId);
+    } else {
+      // Insert at index 1 (second position)
+      mru.splice(1, 0, tabId);
+    }
+
+    await setMRUForWindow(windowId, mru);
+  } catch (error) {
+    console.error('Failed to move tab to second:', error);
   }
-
-  mruByWindow.set(windowId, mru);
-  saveMRU();
 }
 
 
 // Remove tab from MRU
-function removeFromMRU(tabId) {
-  for (const [windowId, mru] of mruByWindow.entries()) {
-    const filtered = mru.filter(id => id !== tabId);
-    if (filtered.length !== mru.length) {
-      mruByWindow.set(windowId, filtered);
+async function removeFromMRU(tabId) {
+  try {
+    const allMRU = await getAllMRU();
+    let modified = false;
+
+    for (const windowId in allMRU) {
+      const mru = allMRU[windowId];
+      const filtered = mru.filter(id => id !== tabId);
+      if (filtered.length !== mru.length) {
+        allMRU[windowId] = filtered;
+        modified = true;
+      }
     }
+
+    if (modified) {
+      await setAllMRU(allMRU);
+    }
+  } catch (error) {
+    console.error('Failed to remove from MRU:', error);
   }
-  saveMRU();
 }
 
 // Get cycle list for a window (includes active tab at index 0)
@@ -104,7 +155,7 @@ async function getCycleList(windowId) {
   }
 
   // Get MRU array for this window
-  let mru = mruByWindow.get(windowId) || [];
+  let mru = await getMRUForWindow(windowId);
 
   // Clean MRU: remove tabs that no longer exist
   const existingTabIds = new Set(tabs.map(t => t.id));
@@ -112,13 +163,13 @@ async function getCycleList(windowId) {
 
   // Ensure active tab is at the front
   if (mru[0] !== activeTab.id) {
-    updateMRU(windowId, activeTab.id);    
+    await updateMRU(windowId, activeTab.id);
+    // Re-fetch after update
+    mru = await getMRUForWindow(windowId);
   }
 
   // Build cycle order: INCLUDE active tab (different from previous version)
   const cycleIds = [...mru];
-
-  // Add any tabs not in MRU yet
 
   // Build display objects
   const tabsById = new Map(tabs.map(t => [t.id, t]));
@@ -349,12 +400,13 @@ chrome.tabs.onActivated.addListener(async ({ tabId, windowId }) => {
   const tab = await chrome.tabs.get(tabId);
 
   // Don't update MRU during cycling
-    updateMRU(windowId, tabId);
+  await updateMRU(windowId, tabId);
 });
 
 // Tab removed
-chrome.tabs.onRemoved.addListener((tabId, { windowId, isWindowClosing }) => {
-  removeFromMRU(tabId);
+chrome.tabs.onRemoved.addListener(async (tabId, { windowId, isWindowClosing }) => {
+  console.log("onRemoved");
+  await removeFromMRU(tabId);
 
   // If cycling and tab was in snapshot, filter it out
   if (cyclingState.active && cyclingState.windowId === windowId) {
@@ -367,9 +419,9 @@ chrome.tabs.onRemoved.addListener((tabId, { windowId, isWindowClosing }) => {
 
     // If no tabs left, cancel cycling
     if (cyclingState.snapshot.length === 0) {
-      cancelCycling();
+      await cancelCycling();
     } else {
-      renderOverlay(cyclingState.activeTabId);
+      await renderOverlay(cyclingState.activeTabId);
     }
   }
 });
@@ -378,16 +430,17 @@ chrome.tabs.onRemoved.addListener((tabId, { windowId, isWindowClosing }) => {
 chrome.tabs.onCreated.addListener(async (tab) => {
   console.log("tanmay oncreated tab", tab)
   const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  
+
   // add to second if new tab is not the active tab
   if (!cyclingState.active && activeTab && activeTab.id !== tab.id) {
-    moveTabToSecond(tab.windowId, tab.id);
+    await moveTabToSecond(tab.windowId, tab.id);
   }
 });
 
 // Window focus changed
 chrome.windows.onFocusChanged.addListener(async (windowId) => {
   const tabs = await chrome.tabs.query({ windowId, active: true });
+
   if (windowId === chrome.windows.WINDOW_ID_NONE) {
     return;
   }
@@ -399,23 +452,20 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
 
   // Update MRU for focused window's active tab
   try {
-    
     if (tabs.length > 0) {
-      updateMRU(windowId, tabs[0].id);
+      await updateMRU(windowId, tabs[0].id);
     }
   } catch (error) {
     // Window may be closing
   }
+
 });
 
 // Window removed
-chrome.windows.onRemoved.addListener((windowId) => {
-  mruByWindow.delete(windowId);
-  saveMRU();
-
+chrome.windows.onRemoved.addListener(async (windowId) => {
   // If cycling window was closed, cancel
   if (cyclingState.active && cyclingState.windowId === windowId) {
-    cancelCycling();
+    await cancelCycling();
   }
 });
 
