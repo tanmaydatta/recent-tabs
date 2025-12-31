@@ -61,6 +61,26 @@ function updateMRU(windowId, tabId) {
   saveMRU();
 }
 
+// Update MRU: Move tab to second to front
+function moveTabToSecond(windowId, tabId) {
+  let mru = mruByWindow.get(windowId) || [];
+
+  // Remove tab if it already exists
+  mru = mru.filter(id => id !== tabId);
+
+  if (mru.length === 0) {
+    // If no other tabs, it becomes the first
+    mru.push(tabId);
+  } else {
+    // Insert at index 1 (second position)
+    mru.splice(1, 0, tabId);
+  }
+
+  mruByWindow.set(windowId, mru);
+  saveMRU();
+}
+
+
 // Remove tab from MRU
 function removeFromMRU(tabId) {
   for (const [windowId, mru] of mruByWindow.entries()) {
@@ -359,6 +379,17 @@ chrome.tabs.onRemoved.addListener((tabId, { windowId, isWindowClosing }) => {
     } else {
       renderOverlay(cyclingState.activeTabId);
     }
+  }
+});
+
+// Tab created
+chrome.tabs.onCreated.addListener(async (tab) => {
+  console.log("tanmay oncreated tab", tab)
+  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  
+  // add to second if new tab is not the active tab
+  if (!cyclingState.active && activeTab && activeTab.id !== tab.id) {
+    moveTabToSecond(tab.windowId, tab.id);
   }
 });
 
